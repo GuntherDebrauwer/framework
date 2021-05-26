@@ -52,11 +52,33 @@ class EloquentBelongsToManyTest extends DatabaseTestCase
         Schema::create('posts_tags', function (Blueprint $table) {
             $table->integer('post_id');
             $table->integer('tag_id');
+            $table->integer('user_id');
             $table->string('flag')->default('')->nullable();
             $table->timestamps();
         });
 
         Carbon::setTestNow(null);
+    }
+
+    public function testPivotEagerLoad()
+    {
+        $post = Post::create(['title' => Str::random()]);
+
+        $user = User::create(['name' => Str::random()]);
+        $user2 = User::create(['name' => Str::random()]);
+        $user3 = User::create(['name' => Str::random()]);
+
+        $tag = Tag::create(['name' => Str::random()]);
+        $tag2 = Tag::create(['name' => Str::random()]);
+        $tag3 = Tag::create(['name' => Str::random()]);
+
+        $post->tagsWithCustomExtraPivot()->sync([
+            $tag->id => ['user_id' => $user],
+            $tag2->id => ['user_id' => $user2],
+            $tag3->id => ['user_id' => $user3],
+        ]);
+
+        $post->tagsWithCustomExtraPivot()->with('pivot.user')->get();
     }
 
     public function testBasicCreateAndRetrieve()
@@ -455,6 +477,7 @@ class EloquentBelongsToManyTest extends DatabaseTestCase
 
     public function testSyncMethod()
     {
+        //
         $post = Post::create(['title' => Str::random()]);
 
         $tag = Tag::create(['name' => Str::random()]);
@@ -977,7 +1000,7 @@ class Post extends Model
         return $this->belongsToMany(TagWithCustomPivot::class, 'posts_tags', 'post_id', 'tag_id')
             ->using(PostTagPivot::class)
             ->withTimestamps()
-            ->withPivot('flag');
+            ->withPivot('flag', 'user_id');
     }
 
     public function tagsWithCustomPivotClass()
@@ -1050,6 +1073,11 @@ class PostTagPivot extends Pivot
 {
     protected $table = 'posts_tags';
     protected $dateFormat = 'U';
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
 
 class TagWithGlobalScope extends Model

@@ -548,12 +548,15 @@ class Builder
      */
     public function eagerLoadRelations(array $models)
     {
+        dump(get_class($models[0]), Arr::pluck($models, 'id'));
+        dump($this->eagerLoad);
         foreach ($this->eagerLoad as $name => $constraints) {
             // For nested eager loads we'll skip loading them here and they will be set as an
             // eager load on the query to retrieve the relation so that they will be eager
             // loaded on that query, because that is where they get hydrated as models.
             if (strpos($name, '.') === false) {
                 $models = $this->eagerLoadRelation($models, $name, $constraints);
+                dump(get_class($models[0]), Arr::pluck($models, 'id'));
             }
         }
 
@@ -570,6 +573,7 @@ class Builder
      */
     protected function eagerLoadRelation(array $models, $name, Closure $constraints)
     {
+        dump(get_class($models[0]), $name);
         // First we will "back up" the existing where conditions on the query so we can
         // add our eager constraints. Then we will merge the wheres that were on the
         // query back to it in order that any where conditions might be specified.
@@ -601,6 +605,7 @@ class Builder
         // and error prone. We don't want constraints because we add eager ones.
         $relation = Relation::noConstraints(function () use ($name) {
             try {
+                dump(get_class($this->getModel()->newInstance()), $name);
                 return $this->getModel()->newInstance()->$name();
             } catch (BadMethodCallException $e) {
                 throw RelationNotFoundException::make($this->getModel(), $name);
